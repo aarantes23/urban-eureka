@@ -62,6 +62,7 @@ def createFullDataSets(dataSetsNames_, path_, pathFull_):
         pathFull_ (string) : path for the output of each dataset.
     """
     for dataSet in dataSetsNames_:  # For each dataset in the list
+        print(dataSet)
         # Create a full path string, by adding path + dataset + end of file name of each string.
         test = path_ + dataSet + ".test.arff"
         train = path_ + dataSet + ".train.arff"

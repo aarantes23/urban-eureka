@@ -106,9 +106,17 @@ venv.bak/
 # databases folder
 /dbs
 /datasets
+/results
 
 # Visual studio code folder
 .vscode
 
 # Debug code
 test.py
+run.1.py
+run.py
+
+#InProduction
+hknn_algorithm.py
+metrics.py
+neighbors.py

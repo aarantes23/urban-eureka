@@ -1,126 +1,146 @@
 # -*- coding: utf-8 -*-
+""" All procedures to do the fourth step that is: replace missing values.\n
+Given an attribute F containing a missing value associated with class Cj,
+this missing value will be replaced by the average of all known values of F associated with class Cj.
+Note: Only the last function is necessary of external call, since the others are used within.
 """
-All procedures to do the fourt step that is: Create a new Train and Test files.\n
-Note: Only the last function is necessary of external call, since the others are used within.\n
-"""
-import csv
-import random
-from random import seed
-from random import randrange
-import procedures_step3 as p3
+from shutil import copyfile
 
 
-def loadDatasetList(filename):
+def getClasses(fileName):
     """
-    Load a file dataSet in to a list\n
-    Return a list split, with each attribute in one position\n
+    Creates a list of all classes of the file\n
+
+    Keyword arguments:\n
+        filename (string) : Full or relative string name with file path.
+    Returns:\n
+        (list) : List with all classes, sorted and unique.
+    """
+    classList = []  # List with all class names
+    file_ = open(fileName, "r")  # Associate file to variable.
+    data = file_.readlines()  # Read all lines of file.
+    file_.close()  # Close input file.
+    for line in data:  # For each line on data file.
+        # .strip() # Remove \n from and of line.
+        # Creates a list with all atributes of the instance by divided wiht .split(",")
+        # The last atribute is the classe. [-1]
+        c = line.strip().split(",")[-1]
+        classList.append(c)
+    return sorted(set(classList))
+
+
+def split_list(list_, n):
+    """
+    Split the list into n sub-lists every time it arrives at the counter "n".\n
+
+    Keyword arguments:\n
+        list_ (list) : Common list.\n
+        n (int) : Delimiter of each list.\n
+    Return (yield):\n
+        (list) : "n" sub-lists of the main list .
+    """
+    for i in range(0, len(list_), n):
+        yield list_[i:i + n]
+
+
+def masterClass(fileName):
+    """
+    Create master instance for each class.\n
+    In her, every attribute, is the average of her classe.\n
 
     Keyword arguments:\n
         filename (string) : Full or relative string name with file path.\n
     Returns:\n
-        (list) : List with full dataSet in it
+        (list) : List with all classes and average attributes.
     """
-    dataSet = []
-    with open(filename, 'r') as csvfile:
-        data = csv.reader(csvfile)
-        for line in data:
-            dataSet.append(line)
-    return dataSet
+    # List with all class names
+    classList = getClasses(fileName)
+    # First list, with all classes, used to start values on list.
+    masterInstance = []
+    # Final list, splited lists, with real (average) values.
+    masterInstance_ = []
+
+    file_ = open(fileName, "r")  # Associate file to variable.
+    data = file_.readlines()  # Read all lines of file.
+    file_.close()  # Close input file.
+
+    # Creates a empty instance for each class.
+    # Ex: [0,0,...,0,0,"01/01/01"]
+    size_ = len(data[1].strip().split(","))  # Get attribute lenght.
+    for i in range(len(classList)):  # For each class on list.
+        for j in range(size_):  # For each atributte on instance.
+            if j == size_-1:  # If is the last attribute,it`s the class.
+                masterInstance.extend([classList[i]])
+            else:  # Else, it`s an attribute, then assign 0.
+                masterInstance.extend([0.0])
+
+    # Split the list (masterInstance) into n sub-lists every time it arrives at the counter (size_).
+    masterInstance_ = list(split_list(masterInstance, size_))
+
+    # Finally, creates the master class for each class.
+    # Atributes value are the average of each one per class.
+    for i in range(len(masterInstance_)):  # For each master instance.
+        count = 0  # Start a count for division.
+        for line in data:  # For each line on the data file.
+            instance = line.strip().split(",")  # Get the instance.
+            # If the class of the instance is the current masterInstance class.
+            if instance[-1] == masterInstance_[i][-1]:
+                count += 1  # Add 1 to the division counter.
+                # For each attribute, unless the class (thats why -1).
+                for j in range(len(instance)-1):
+                    if instance[j] != "?":  # If the attibute has a value.
+                        # Add with the previous value, and divide, obtaining the partial average each time.
+                        masterInstance_[i][j] = (
+                            float(masterInstance_[i][j]) + float(instance[j])) / count
+
+    # Round numbers to "decimal" digits.
+    decimal = 3
+    for i in range(len(masterInstance_)):
+        for j in range(len(masterInstance_[i])-1):
+            masterInstance_[i][j] = round(masterInstance_[i][j], decimal)
+
+    # Return the list with all master instances.
+    return masterInstance_
 
 
-def splitInKFolds(fileName, folds, randomSeed):
+def replaceMissingValues(fileName):
     """
-    Split a dataSet into k folds smalls datasets\n
-    Ensure that there will be at least one of each class in the training and test set
+    Replace all missing values with the master class value.\n
+    Doesn`t return anything because all operations are made in the file.\n
 
     Keyword arguments:\n
-        filename (string) : Full or relative string name with file path.\n
-        folds (int): K folds for split dataSet.\n
-        randomSeed (int or float): seed for the random picker.\n
-    Returns:\n
-        (list) : List with full dataSet in it, splited in k folds.
+        filename (string) : Full or relative string name with file path.        
     """
-    class_ = p3.getClasses(fileName)
-    dataSet = loadDatasetList(fileName)  # Load a file dataSet in to a list
-    random.seed(randomSeed)
-    dataSet_split = list()  # New temporary list, will be the output
-    dataSet_copy = list(dataSet)  # Copy the old list
-    # Receive the size that each part must have from the total of the list,
-    fold_size = int(len(dataSet) / folds)
-    for i in range(folds):  # For each part
-        flag = True
-        fold = list()  # New temporary list, for the current part.
-        while len(fold) < fold_size:  # While the size of the list is not the size it should have.
-            # Make sure that will have at least one of each class on each dataSet part.
-            while flag == True:
-                for x in range(len(dataSet_copy)):  # For each instance on the dataSet.
-                    for y in range(len(class_)):  # For each class in the class list.
-                        # If its they have the same class.
-                        if dataSet_copy[x][-1] == class_[y][-1]:
-                            # Add to the list and removes the index passed to the list,
-                            # ensuring that it does not repeat the item again.
-                            fold.append(dataSet_copy.pop(x))
-                    if y == (len(class_)-1): # If all class have been copy, flag to exit.
-                        flag = False
-            # Gets a random element from the list.
-            index = randrange(len(dataSet_copy))
-            # Add to the list and removes the index passed to the list,
-            # ensuring that it does not repeat the item again.
-            fold.append(dataSet_copy.pop(index))
-        # Adds the list of the current k part to the return list.
-        dataSet_split.append(fold)
-    return dataSet_split
+    masterClasses = masterClass(fileName)
+    file_ = open(fileName, "r+")  # Associate file to variable.
+    data = file_.readlines()  # Read all lines of file.
+    file_.seek(0)  # Set the pointer to the beginning of file.
+
+    for line in data:  # For each line on the file.
+        outputLine = []  # Final Output Line.
+        # Split each line to create a list of attributes.
+        attribute = line.strip().split(",")
+        for j in range(len(attribute)):  # For each attribute on the line.
+            if attribute[j] == "?":  # If is missing the value.
+                for k in masterClasses:  # Seach the class in the master classes list.
+                    if attribute[-1] == k[-1]:  # When find.
+                        # Replace the missing value with the master value.
+                        outputLine.append(k[j])
+            else:  # If is a normal value.
+                outputLine.append(attribute[j])  # Keep the line value.
+        # Write the output line, replacing the characters of the list.
+        file_.write(str(outputLine).replace(
+            "[", "").replace("]", "").replace("'", "").replace(" ","")+"\n")
+
+    file_.truncate()  # Truncate remaining file.
+    file_.close()  # Finally, close the file.
 
 
-def crossValidationSplit(dataSetName,fileName, folds, randomSeed, outputPath):
+def replaceMissingValuesDataSets(dataSetsNames_, path_, outputPath):
     """
-    Creates trainning and test files for the current dataSet\n
-    Doesn`t return anything because all operations are made by creating new files.\n
-    Trainning with size of folds-1\n
-    Test with size of 1.\n
-
-    Keyword arguments:\n
-        dataSetName (string): String with file name of dataSet\n
-        filename (string): Full or relative string name with file path.\n
-        folds (int): K folds for split dataSet.\n
-        randomSeed (int or float): seed for the random picker.\n
-        outputPath (string): Path for the output folder.\n
-    """
-    for i in range(folds):  # For each test/train set.
-        trainDataSet = []  # Final train data set.
-        testDataSet = []  # Final test data set.
-        # Open/Create the output for each dataSet.
-        trainOutput = open(outputPath+dataSetName +
-                           ".train."+str(i)+".arff", "w")
-        testOutput = open(outputPath+dataSetName+".test."+str(i)+".arff", "w")
-        # Set the pointer to the beginning of each file.
-        testOutput.seek(0)
-        trainOutput.seek(0)
-        # Split a dataSet into k folds smalls datasets.
-        dataSet = splitInKFolds(fileName, folds, randomSeed)
-        # Take one k part for test and other k parts for training.
-        for j in range(len(dataSet)):  # For the dataSet size.
-            if (j == i):  # If the current part is the test part.
-                # For each instance of this dataSet.
-                for n in range(len(dataSet[j])):
-                    # A new instance will be added to the list of the current test set.
-                    testDataSet.append(dataSet[j][n])
-            # If it is not the test set, the part will be added to the training set.
-            else:
-                for n in range(len(dataSet[j])):
-                    trainDataSet.append(dataSet[j][n])
-        # Write on file the output results.
-        trainOutput.write(str(trainDataSet).replace("[", "").replace(
-            "],", "'\n").replace("'", "").replace(" ", "")+"\n")
-        testOutput.write(str(testDataSet).replace(
-            "[", "").replace("],", "'\n").replace("'", "").replace(" ", "")+"\n")
-
-def crossValidationSplitDataSets(dataSetsNames_, path_, folds, randomSeed, outputPath):
-    """
-    Creates trainning and test files for each dataSet\n
-    Doesn`t return anything because all operations are made by creating new files.\n
-    Trainning with size of folds-1\n
-    Test with size of 1.\n
+    Replace all missing values on each dataset\n
+    Doesn`t return anything, but create a new file in the outputPath location with the result.\n
+    For more info, ready all the class.\n
 
     Keyword arguments:\n
         dataSetsNames_ (list[string]):  list of all datasets in path folder.\n
@@ -128,6 +148,10 @@ def crossValidationSplitDataSets(dataSetsNames_, path_, folds, randomSeed, outpu
         outputPath (string) : path for the output folder of each dataset.\n
     """
     for dataSet in dataSetsNames_:  # For each dataset in the list.
-        print(dataSet)                
-        fileName = path_ + dataSet
-        crossValidationSplit(dataSet,fileName,folds,randomSeed,outputPath)
+        print(dataSet)
+        src = path_ + dataSet  # Input full file name.
+        fileName = outputPath + dataSet
+        # Create a copy of the old dataset to work in it.
+        copyfile(src, fileName)
+        # Replace all missing values of the current dataset
+        replaceMissingValues(fileName)

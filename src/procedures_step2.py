@@ -92,6 +92,7 @@ def convertToSingleLabelDataSets(dataSetsNames_, path_, pathSingleLabel_):
         pathSingleLabel_ (string) : path for the output of each dataset.
     """
     for dataSet in dataSetsNames_:  # For each dataset in the list.
+        print(dataSet)
         src = path_ + dataSet  # Input full file name.
         fileName = pathSingleLabel_ + dataSet
         # Create a copy of the old dataset to work in it.
