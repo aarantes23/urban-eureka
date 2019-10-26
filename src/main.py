@@ -74,6 +74,12 @@ dataSetNames = ["cellcycle_FUN.full.arff", "church_FUN.full.arff", "derisi_FUN.f
 procedures_step4.replaceMissingValuesDataSets(
     dataSetNames, pathSingleLabel, pathNoMissingValues)
 
+# Then, redefine data set names, for final step, 12 full datasets
+dataSetNames = ["cellcycle_FUN.full.arff", "church_FUN.full.arff", "derisi_FUN.full.arff",
+                "eisen_FUN.full.arff", "expr_FUN.full.arff", "gasch1_FUN.full.arff",
+                "gasch2_FUN.full.arff", "hom_FUN.full.arff", "pheno_FUN.full.arff",
+                "seq_FUN.full.arff", "spo_FUN.full.arff", "struc_FUN.full.arff"]
+
 # Step 5
 print("\nStep 5: Create new Training and Test sets.")
 procedures_step5.crossValidationSplitDataSets(
